@@ -67,6 +67,6 @@ public class RemoteHttpServer extends NanoHTTPD {
 
     private String discoveryService() {
         //TODO save attached device
-        return "<html><h1>ForkPlayer on Android</h1><br><b>Android Server</b></html>";
+        return "<html><h1>ForkPlayer DLNA Work!</h1><br><b>Server by Visual Studio 2015</b></html>";
     }
 }
