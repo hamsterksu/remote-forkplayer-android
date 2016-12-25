@@ -1,13 +1,16 @@
 package forkplayer.tv.remotefork;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -22,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView btnStatus;
 
     private RemoteForkService.ForkBinder service;
-    private boolean autostart;
+    private boolean autoStart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,16 +56,23 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     service.start();
                 }
-                updateStatus();
             }
         });
-        autostart = true;
+        autoStart = true;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         bindService(new Intent(this, RemoteForkService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+        LocalBroadcastManager.getInstance(this).registerReceiver(stateListener, new IntentFilter(RemoteForkService.NOTIFICATION_UPDATE_STATE));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unbindService(serviceConnection);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(stateListener);
     }
 
     private void updateStatus() {
@@ -81,9 +91,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             service = (RemoteForkService.ForkBinder) iBinder;
-            if (autostart) {
+            if (autoStart) {
                 service.start();
-                autostart = false;
+                autoStart = false;
             }
             updateStatus();
         }
@@ -91,6 +101,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             service = null;
+            updateStatus();
+        }
+    };
+
+    private BroadcastReceiver stateListener = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
             updateStatus();
         }
     };

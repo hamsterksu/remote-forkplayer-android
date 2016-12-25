@@ -1,6 +1,9 @@
 package forkplayer.tv.remotefork.service;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.util.List;
+import java.util.Map;
 
 import fi.iki.elonen.NanoHTTPD;
 import forkplayer.tv.remotefork.service.handler.CurlHandler;
@@ -31,6 +34,7 @@ public class RemoteHttpServer extends NanoHTTPD {
             Timber.w(".serve 405");
             return responseFactory.r405();
         }
+        //Map<String, List<String>> params = decodeParameters(session.getQueryParameterString());
         Timber.d(".serve: " + session.getQueryParameterString());
         String uri = session.getUri();
         String result = null;
@@ -38,7 +42,9 @@ public class RemoteHttpServer extends NanoHTTPD {
             result = discoveryService();
         } else if (uri.startsWith("/parserlink")) {
             try {
-                result = parseLink(uri);
+                String decodedUrl = URLDecoder.decode(session.getQueryParameterString(), "UTF8");
+                Timber.d(".serve: " + decodedUrl);
+                result = parseLink(decodedUrl);
             } catch (Exception e) {
                 Timber.e(e, ".parseLink 500");
                 return responseFactory.r500();
@@ -54,10 +60,10 @@ public class RemoteHttpServer extends NanoHTTPD {
     }
 
     private String parseLink(String url) throws IOException {
-        String[] parts = url.split("|");
+        String[] parts = url.split("\\|");
         String request = parts[0];
         IHandler handler;
-        if ("curl".equals(request)) {
+        if (request.startsWith("curl")) {
             handler = new CurlHandler(httpFactory, request);
         } else {
             handler = new WgetHandler(httpFactory, request);

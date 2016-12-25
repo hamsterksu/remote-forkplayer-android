@@ -10,6 +10,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.LocalBroadcastManager;
 
 import java.io.IOException;
 
@@ -23,6 +24,8 @@ import timber.log.Timber;
  */
 
 public class RemoteForkService extends Service {
+
+    public static final String NOTIFICATION_UPDATE_STATE = "RemoteForkService.ACTION_STATE_CHANGED";
 
     private RemoteHttpServer server;
 
@@ -52,7 +55,15 @@ public class RemoteForkService extends Service {
             server.stop();
             server = null;
             stopForeground(true);
+            stopSelf();
+            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(NOTIFICATION_UPDATE_STATE));
         }
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        startMe();
+        return START_NOT_STICKY;
     }
 
     private void startMe() {
@@ -70,6 +81,7 @@ public class RemoteForkService extends Service {
 
         Notification notification = builder.build();
         startForeground(1000, notification);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(NOTIFICATION_UPDATE_STATE));
     }
 
     private RemoteHttpServer listen() {
@@ -94,11 +106,10 @@ public class RemoteForkService extends Service {
 
         public void stop() {
             stopMe();
-            stopSelf();
         }
 
         public void start() {
-            startMe();
+            startService(new Intent(RemoteForkService.this, RemoteForkService.class));
         }
     }
 }
