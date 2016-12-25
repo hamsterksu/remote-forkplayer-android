@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView btnStatus;
 
     private RemoteForkService.ForkBinder service;
+    private boolean autostart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,9 +53,10 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     service.start();
                 }
-                updateStatus(service);
+                updateStatus();
             }
         });
+        autostart = true;
     }
 
     @Override
@@ -63,8 +65,7 @@ public class MainActivity extends AppCompatActivity {
         bindService(new Intent(this, RemoteForkService.class), serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
-    private void updateStatus(RemoteForkService.ForkBinder service) {
-        this.service = service;
+    private void updateStatus() {
         boolean connected = service != null && service.isStarted();
         if (connected) {
             status.setText("Status: Connected");
@@ -79,12 +80,18 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            updateStatus((RemoteForkService.ForkBinder) iBinder);
+            service = (RemoteForkService.ForkBinder) iBinder;
+            if (autostart) {
+                service.start();
+                autostart = false;
+            }
+            updateStatus();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            updateStatus(null);
+            service = null;
+            updateStatus();
         }
     };
 }
