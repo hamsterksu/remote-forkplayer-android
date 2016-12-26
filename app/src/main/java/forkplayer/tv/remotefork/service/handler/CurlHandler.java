@@ -25,27 +25,38 @@ public class CurlHandler implements IHandler {
 
     @Override
     public String process() throws IOException {
-        String url = pattern.matcher(request).group(1);
-        HashMap<String, String> headers = new HashMap<String, String>();
+        Matcher matcher = pattern.matcher(request);
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("No url in curl");
+        }
+        String url = matcher.group(1);
+        HashMap<String, String> headers = new HashMap<>();
         Matcher matches = regexpHeaders.matcher(request);
-        for (int i = 0; i < matches.groupCount(); i++) {
-            String header = matches.group(i);
+        while (matches.find()) {
+            String header = matches.group(1);
             String[] pair = header.split(":", 2);
             if (pair.length == 2) {
-                headers.put(pair[0], pair[1]);
+                headers.put(pair[0], pair[1].trim());
             }
         }
 
+        HashMap<String, String> data = null;
         if (request.contains("--data")) {
-            String dataString = regexpData.matcher(request).group(1);
-            String[] dataArray = dataString.split("&");
-            HashMap<String, String> data = new HashMap<>();
-            for (String item : dataArray) {
-                String[] pair = item.split("=", 2);
-                if (pair.length == 2) {
-                    data.put(pair[0], pair[1]);
+            Matcher dataMatched = regexpData.matcher(request);
+            if (dataMatched.find()) {
+                String dataString = dataMatched.group(1);
+                String[] dataArray = dataString.split("&");
+                data = new HashMap<>();
+                for (String item : dataArray) {
+                    String[] pair = item.split("=", 2);
+                    if (pair.length == 2) {
+                        data.put(pair[0], pair[1].trim());
+                    }
                 }
+
             }
+        }
+        if (data != null) {
             return factory.doPost(url, headers, data);
         } else {
             return factory.doGet(url, headers);
